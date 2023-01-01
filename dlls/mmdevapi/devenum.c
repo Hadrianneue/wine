@@ -325,6 +325,11 @@ static MMDevice *MMDevice_Create(WCHAR *name, GUID *id, EDataFlow flow, DWORD st
             MMDevice_SetPropValue(id, flow, (const PROPERTYKEY*)&DEVPKEY_DeviceInterface_FriendlyName, &pv);
             MMDevice_SetPropValue(id, flow, (const PROPERTYKEY*)&DEVPKEY_Device_DeviceDesc, &pv);
 
+            if (wcscmp(name, L"Wireless Controller") == 0) {
+              pv.pwszVal = L"{12345678-9ABC-DEF0-1234-56789ABCDEF0}";
+              MMDevice_SetPropValue(id, flow, (const PROPERTYKEY*)&DEVPKEY_Device_ContainerId, &pv);
+            }
+
             pv.pwszVal = guidstr;
             MMDevice_SetPropValue(id, flow, &deviceinterface_key, &pv);
 
@@ -1418,8 +1423,27 @@ static HRESULT WINAPI MMDevPropStore_GetValue(IPropertyStore *iface, REFPROPERTY
     }
 
     hres = MMDevice_GetPropValue(&This->parent->devguid, This->parent->flow, key, pv);
+
     if (FAILED(hres))
         return hres;
+
+    /* Clients apps expect a CLSID */
+    if(IsEqualPropertyKey(*key,DEVPKEY_Device_ContainerId) && pv->vt == VT_LPWSTR && pv->pwszVal) {
+        LPWSTR guidstr = pv->pwszVal;
+
+        pv->puuid = CoTaskMemAlloc(sizeof(*pv->puuid));
+        if (!pv->puuid)
+          return E_OUTOFMEMORY;
+
+        hres = CLSIDFromString(guidstr, pv->puuid);
+        if (FAILED(hres))
+          return hres;
+
+        pv->vt = VT_CLSID;
+        CoTaskMemFree(guidstr);
+
+        return hres;
+    }
 
     if (WARN_ON(mmdevapi))
     {

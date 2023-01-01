@@ -3227,6 +3227,27 @@ BOOL WINAPI SetupDiGetDeviceRegistryPropertyW(HDEVINFO devinfo,
         return FALSE;
     }
 
+    if (Property == 36) {
+        /* Container ID. Returning a fake one so that games using the DualSense can match devices together. */
+        STRING *guid = L"{12345678-9abc-def0-1234-56789abcdef0}";
+        if (PropertyRegDataType != NULL) {
+          *PropertyRegDataType = REG_SZ;
+        }
+
+        DWORD size = (wcslen(guid) + 1) * sizeof(WCHAR);
+
+        if (PropertyBufferSize > size) {
+          wcscpy(PropertyBuffer, guid);
+
+          if (RequiredSize)
+            *RequiredSize = size;
+
+          TRACE("output: %s\n", debugstr_w(PropertyBuffer));
+
+          ret = TRUE;
+        }
+    }
+
     if (Property < ARRAY_SIZE(PropertyMap) && PropertyMap[Property].nameW)
     {
         DWORD size = PropertyBufferSize;

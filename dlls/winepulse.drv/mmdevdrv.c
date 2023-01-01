@@ -1149,7 +1149,20 @@ static HRESULT WINAPI AudioClient_GetMixFormat(IAudioClient3 *iface,
     if (!pwfx)
         return E_POINTER;
 
-    *pwfx = clone_format(&pulse_config.modes[This->dataflow == eCapture].format.Format);
+    if (This->pulse_name[0]) {
+      struct get_device_mix_format_params params;
+      params.render = This->dataflow == eRender;
+      params.pulse_name = This->pulse_name;
+      pulse_call(get_device_mix_format, &params);
+
+      if (FAILED(params.result))
+        return params.result;
+
+      *pwfx = clone_format(&params.fmt.Format);
+    } else {
+      *pwfx = clone_format(&pulse_config.modes[This->dataflow == eCapture].format.Format);
+    }
+
     if (!*pwfx)
         return E_OUTOFMEMORY;
     dump_fmt(*pwfx);
@@ -1165,6 +1178,23 @@ static HRESULT WINAPI AudioClient_GetDevicePeriod(IAudioClient3 *iface,
 
     if (!defperiod && !minperiod)
         return E_POINTER;
+
+    if (This->pulse_name[0]) {
+      struct get_device_period_params params;
+      params.render = This->dataflow == eRender;
+      params.pulse_name = This->pulse_name;
+      pulse_call(get_device_period, &params);
+
+      if (FAILED(params.result))
+        return params.result;
+
+      if (defperiod)
+          *defperiod = params.def_period;
+      if (minperiod)
+          *minperiod = params.min_period;
+
+      return S_OK;
+    }
 
     if (defperiod)
         *defperiod = pulse_config.modes[This->dataflow == eCapture].def_period;

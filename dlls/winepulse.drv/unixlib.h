@@ -159,6 +159,23 @@ struct get_current_padding_params
     UINT32 *padding;
 };
 
+struct get_device_mix_format_params
+{
+    const char *pulse_name;
+    HRESULT result;
+    BOOL render;
+    WAVEFORMATEXTENSIBLE fmt;
+};
+
+struct get_device_period_params
+{
+    const char *pulse_name;
+    HRESULT result;
+    BOOL render;
+    REFERENCE_TIME def_period;
+    REFERENCE_TIME min_period;
+};
+
 struct get_next_packet_size_params
 {
     struct pulse_stream *stream;
@@ -260,4 +277,6 @@ enum unix_funcs
     test_connect,
     is_started,
     get_prop_value,
+    get_device_mix_format,
+    get_device_period,
 };
